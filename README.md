@@ -1,83 +1,100 @@
 # Coreline Systems
 
-Company website for Coreline Systems, served by a small Express backend with working
-contact and subscription forms (submissions arrive by email — no database needed).
+A modern business website and digital brand presence for Coreline Systems, built with Express and a static marketing front end.
+
+## Overview
+
+This project includes:
+- a premium one-page marketing site in `public/index.html`
+- SEO improvements and social metadata
+- landing pages for the main service offerings
+- contact and subscription form endpoints backed by Nodemailer
+- a lightweight Express server for local development and deployment
+
+## Tech stack
+
+- Node.js
+- Express
+- Nodemailer
+- HTML, CSS, and JavaScript
 
 ## Project structure
 
-```
-coreline-systems/
-  server.js            Express app entry point
-  routes/
-    contact.js          POST /api/contact — validates + emails form submissions
-    subscribe.js        POST /api/subscribe — validates + emails subscriber notifications
-  public/
-    index.html           The whole site (HTML/CSS/JS in one file)
-    media/
-      coreline-promo.mp4
-      poster.jpg
-      everything-grandeur.jpg
-  .env.example           Copy to .env and fill in real values
-  package.json
+```text
+coreline-systems-main/
+├── public/
+│   ├── index.html
+│   ├── robots.txt
+│   ├── sitemap.xml
+│   ├── cookie-policy.html
+│   ├── privacy-policy.html
+│   ├── media/
+│   └── services/
+├── routes/
+│   ├── contact.js
+│   └── subscribe.js
+├── .env.example
+├── .gitignore
+├── package.json
+├── server.js
+├── README.md
+└── test-server.js
 ```
 
-## Setup (first time, in VS Code)
+## Local setup
 
-1. Open this folder in VS Code.
-2. Open a terminal (``Ctrl+` `` / `` Cmd+` ``) and install dependencies:
-   ```
+1. Install dependencies:
+   ```bash
    npm install
    ```
-3. Copy the environment example file and fill in real values:
-   ```
+
+2. Create your local environment file:
+   ```bash
    cp .env.example .env
    ```
-   Then edit `.env`:
-   - `EMAIL_USER` — the Gmail address that will send the notification emails
-   - `EMAIL_PASS` — a **Gmail App Password** (not your normal password). Generate one at
-     https://myaccount.google.com/apppasswords — this requires 2-Step Verification to be
-     turned on for that Google account first.
-   - `EMAIL_TO` — where you want contact and subscription notifications delivered
-     (currently `matemarumbidzai2@gmail.com` in `.env.example`)
 
-4. Run it locally:
-   ```
+3. Fill in the required values in `.env`:
+   - `EMAIL_USER`
+   - `EMAIL_PASS`
+   - `EMAIL_TO`
+
+4. Start the app:
+   ```bash
    npm start
    ```
-   Then open http://localhost:3000 in your browser.
 
-   For auto-restart while you're editing:
+5. Open the app in the browser:
+   ```text
+   http://localhost:3000
    ```
-   npm run dev
-   ```
 
-## How the contact form works
+For automatic restarts while developing:
+```bash
+npm run dev
+```
 
-- The form on the site posts to `/api/contact`.
-- `routes/contact.js` validates the input, blocks obvious bots via a hidden honeypot field,
-  and sends you an email (reply-to is set to the sender's address, so you can just hit
-  "reply" in your inbox).
-- `server.js` rate-limits that endpoint to 5 submissions per 15 minutes per visitor, so it
-  can't easily be spammed.
-- If `.env` isn't configured yet, the form fails gracefully with a message telling the
-  visitor to use WhatsApp or email directly instead — it won't crash the server.
+## Contact form behavior
+
+- `POST /api/contact` validates form inputs and sends an email notification.
+- `POST /api/subscribe` handles subscription requests using the same backend pattern.
+- The app rate-limits contact traffic to reduce spam risk.
+- If email is not configured, the site falls back gracefully with direct WhatsApp/mail alternatives.
 
 ## Deployment
 
-This uses the same pattern as the Everything Grandeur project — deploys well to Render:
+This app is designed to run on a Node hosting platform such as Render, Railway, or a similar service.
 
-1. Push this project to a GitHub repo.
-2. On [Render](https://render.com), create a new **Web Service** from that repo.
-3. Build command: `npm install`
-4. Start command: `npm start`
-5. Add the same three environment variables from your `.env` file in Render's
-   Environment settings (`EMAIL_USER`, `EMAIL_PASS`, `EMAIL_TO`) — **do not** commit
-   your real `.env` file to GitHub.
+Recommended production setup:
+- Build command: `npm install`
+- Start command: `npm start`
+- Add the same environment variables in your hosting provider settings
 
-## Notes
+> Do not commit `.env` to GitHub.
 
-- `media/` must stay inside `public/` — the video and images are referenced with
-  relative paths from `index.html`.
-- The whole front end is one HTML file with inline CSS/JS by design, to keep things
-  simple. If it grows a lot, splitting into separate `.css`/`.js` files under
-  `public/` is a natural next step — just update the `<link>`/`<script src>` tags.
+## GitHub Pages note
+
+The front-end marketing pages in `public/` can be deployed to GitHub Pages for static presentation, but the Node API endpoints for contact and subscription forms will not work on GitHub Pages alone. For the full website experience, deploy the app on a Node host instead.
+
+## License
+
+This project is for business use and internal project hosting. Update or add a license file if you plan to distribute the code publicly.
