@@ -53,10 +53,10 @@ coreline-systems-main/
    cp .env.example .env
    ```
 
-3. Fill in the required values in `.env`:
-   - `EMAIL_USER`
-   - `EMAIL_PASS`
-   - `EMAIL_TO`
+3. Fill in `.env`:
+   - For the contact form, set `EMAILJS_SERVICE_ID`, `EMAILJS_TEMPLATE_ID`,
+     `EMAILJS_PUBLIC_KEY`, `EMAILJS_PRIVATE_KEY`, and `EMAILJS_TO_EMAIL`.
+   - For subscription notifications, set `EMAIL_USER`, `EMAIL_PASS`, and `EMAIL_TO`.
 
 4. Start the app:
    ```bash
@@ -75,10 +75,15 @@ npm run dev
 
 ## Contact form behavior
 
-- `POST /api/contact` validates form inputs and sends an email notification.
+- `POST /api/contact` validates and rate-limits submissions, then sends them using EmailJS.
+- The current EmailJS template uses `{{title}}`, `{{name}}`, `{{time}}`,
+  `{{message}}`, and `{{email}}`; the form fills these values for each enquiry.
+  The template's recipient is `matemarumbidzai2@gmail.com`.
 - `POST /api/subscribe` handles subscription requests using the same backend pattern.
-- The app rate-limits contact traffic to reduce spam risk.
-- If email is not configured, the site falls back gracefully with direct WhatsApp/mail alternatives.
+- Contact messages and subscriptions each have a separate limit of five requests
+  per IP address every 15 minutes. When the contact limit is reached, the form
+  offers a prefilled direct-email link.
+- If EmailJS is not configured or a send fails, the form offers a prefilled direct-email link.
 
 ## Deployment
 

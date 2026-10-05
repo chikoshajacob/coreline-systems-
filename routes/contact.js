@@ -1,20 +1,9 @@
 const express = require('express');
-const nodemailer = require('nodemailer');
 
 const router = express.Router();
 
 // Very small email format check — good enough to catch typos, not meant to be exhaustive
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function buildTransporter() {
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
-  });
-}
 
 router.post('/', async (req, res) => {
   try {
@@ -30,56 +19,53 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Message is too long.' });
     }
 
-    const recipient = process.env.SUPPORT_EMAIL || process.env.EMAIL_TO;
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS || !recipient) {
-      console.error('Email env vars are not configured. See .env.example.');
+    const {
+      EMAILJS_SERVICE_ID,
+      EMAILJS_TEMPLATE_ID,
+      EMAILJS_PUBLIC_KEY,
+      EMAILJS_PRIVATE_KEY,
+    } = process.env;
+    if (
+      !EMAILJS_SERVICE_ID ||
+      !EMAILJS_TEMPLATE_ID ||
+      !EMAILJS_PUBLIC_KEY ||
+      !EMAILJS_PRIVATE_KEY
+    ) {
+      console.error('EmailJS env vars are not configured. See .env.example.');
       return res.status(500).json({ error: 'Contact form is not configured yet. Please try again later.' });
     }
-
-    const transporter = buildTransporter();
 
     const safeName = String(name).slice(0, 200);
     const safeProjectType = String(projectType || 'Not specified').slice(0, 100);
     const safeMessage = String(message).slice(0, 5000);
 
-    await transporter.sendMail({
-      from: `"Coreline Systems Website" <${process.env.EMAIL_USER}>`,
-      to: recipient,
-      replyTo: email,
-      subject: `New project inquiry — ${safeName} (${safeProjectType})`,
-      text:
-`New message from the Coreline Systems contact form:
-
-Name: ${safeName}
-Email: ${email}
-Project type: ${safeProjectType}
-
-Message:
-${safeMessage}`,
-      html:
-`<div style="font-family:sans-serif; line-height:1.6;">
-  <p><strong>New message from the Coreline Systems contact form</strong></p>
-  <p><strong>Name:</strong> ${escapeHtml(safeName)}<br>
-     <strong>Email:</strong> ${escapeHtml(email)}<br>
-     <strong>Project type:</strong> ${escapeHtml(safeProjectType)}</p>
-  <p><strong>Message:</strong><br>${escapeHtml(safeMessage).replace(/\n/g, '<br>')}</p>
-</div>`
+    const emailJsResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        service_id: EMAILJS_SERVICE_ID,
+        template_id: EMAILJS_TEMPLATE_ID,
+        user_id: EMAILJS_PUBLIC_KEY,
+        accessToken: EMAILJS_PRIVATE_KEY,
+        template_params: {
+          name: safeName,
+          email,
+          time: new Date().toISOString(),
+          title: `Project enquiry — ${safeProjectType}`,
+          message: `Project type: ${safeProjectType}\nReply email: ${email}\n\n${safeMessage}`
+        }
+      })
     });
+    if (!emailJsResponse.ok) {
+      const details = await emailJsResponse.text();
+      throw new Error(`EmailJS request failed (${emailJsResponse.status}): ${details}`);
+    }
 
     return res.status(200).json({ ok: true });
   } catch (err) {
-    console.error('Contact form error:', err);
+    console.error('EmailJS contact error:', err);
     return res.status(500).json({ error: 'Something went wrong sending that. Please try again later.' });
   }
 });
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
 
 module.exports = router;

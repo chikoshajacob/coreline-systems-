@@ -674,9 +674,11 @@
         display: none;
         width: 38px;
         height: 38px;
+        flex-shrink: 0;
         border-radius: 9px;
         border: 1px solid var(--panel-line);
         background: rgba(255, 255, 255, 0.02);
+        color: var(--hi);
         align-items: center;
         justify-content: center;
         cursor: pointer;
@@ -2721,6 +2723,28 @@
         const cfSubmitLabel = cfSubmit.querySelector(".cf-submit-label");
         const cfStatus = document.getElementById("cfStatus");
 
+        function showEmailFallback(
+          name,
+          email,
+          projectType,
+          message,
+          notice = "Email service unavailable.",
+        ) {
+          const subject = encodeURIComponent(`Project enquiry from ${name}`);
+          const body = encodeURIComponent(
+            `Name: ${name}\nEmail: ${email}\nProject type: ${projectType}\n\n${message}`,
+          );
+          const emailLink = document.createElement("a");
+          emailLink.href = `mailto:matemarumbidzai2@gmail.com?subject=${subject}&body=${body}`;
+          emailLink.textContent = "Email us directly";
+          cfStatus.replaceChildren(
+            document.createTextNode(`${notice} `),
+            emailLink,
+            document.createTextNode("."),
+          );
+          cfStatus.className = "cf-status err";
+        }
+
         contactForm.addEventListener("submit", async (e) => {
           e.preventDefault();
 
@@ -2757,28 +2781,30 @@
                 "Thanks — that's sent. We'll get back to you soon.";
               cfStatus.className = "cf-status ok";
               contactForm.reset();
+            } else if (
+              res.status === 429
+            ) {
+              showEmailFallback(
+                name,
+                email,
+                projectType,
+                message,
+                "Too many messages sent. Please wait 15 minutes, or",
+              );
+            } else if (
+              res.status >= 500 ||
+              res.status === 403 ||
+              res.status === 404
+            ) {
+              showEmailFallback(name, email, projectType, message);
             } else {
-              if (
-                res.status === 500 &&
-                data.error?.includes("not configured")
-              ) {
-                const subject = encodeURIComponent(
-                  `Project enquiry from ${name}`,
-                );
-                const body = encodeURIComponent(
-                  `Name: ${name}\nEmail: ${email}\nProject type: ${projectType}\n\n${message}`,
-                );
-                cfStatus.innerHTML = `Email service unavailable. <a href="mailto:matemarumbidzai2@gmail.com?subject=${subject}&body=${body}">Email us directly</a>.`;
-              } else {
-                cfStatus.textContent =
-                  data.error ||
-                  "Something went wrong sending that. Please try again.";
-              }
+              cfStatus.textContent =
+                data.error ||
+                "Something went wrong sending that. Please try again.";
               cfStatus.className = "cf-status err";
             }
           } catch (err) {
-            cfStatus.textContent = "Network error — please try again.";
-            cfStatus.className = "cf-status err";
+            showEmailFallback(name, email, projectType, message);
           } finally {
             cfSubmit.disabled = false;
             cfSubmitLabel.textContent = "Send message";
